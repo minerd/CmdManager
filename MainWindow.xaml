@@ -1,0 +1,229 @@
+<Window x:Class="CmdManager.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="CMD Manager" Height="680" Width="1150"
+        Icon="app.ico"
+        Background="#1E1E1E" Foreground="#DCDCDC"
+        FontFamily="Segoe UI" FontSize="13">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Foreground" Value="#EEE"/>
+            <Setter Property="BorderBrush" Value="#3F3F46"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="ListBox">
+            <Setter Property="Background" Value="#252526"/>
+            <Setter Property="Foreground" Value="#DCDCDC"/>
+            <Setter Property="BorderBrush" Value="#3F3F46"/>
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#DCDCDC"/>
+        </Style>
+    </Window.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="320"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- LEFT COLUMN -->
+        <Grid Grid.Column="0" Background="#1E1E1E">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="180"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0">
+                <StackPanel Orientation="Horizontal" Margin="4">
+                    <Button Content="↻ Yenile" Click="Refresh_Click"/>
+                    <Button Content="+ Yeni CMD" Click="NewCmd_Click"/>
+                    <Button Content="Hepsini Kapat" Click="KillAll_Click" Background="#5A2B2B"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="8,0,4,4">
+                    <CheckBox x:Name="AutoResumeCheck" Content="⏰ Limit dolunca oto-devam"
+                              Foreground="#DCDCDC" VerticalAlignment="Center"
+                              Checked="AutoResume_Toggled" Unchecked="AutoResume_Toggled"
+                              ToolTip="Claude Code 'limit reached' deyince sıfırlanma saatini ekrandan okur ve vakti gelince devam komutunu otomatik gönderir"/>
+                    <Button Content="✏" Click="EditResumeMsg_Click" Padding="6,2" FontSize="11" Margin="8,0,0,0"
+                            ToolTip="Limit sıfırlanınca gönderilecek komutu değiştir"/>
+                </StackPanel>
+            </StackPanel>
+
+            <TextBlock Grid.Row="1" Text="⭐ Favoriler" Margin="8,4,8,2" Foreground="#D7BA7D" FontSize="11"/>
+
+            <ListBox Grid.Row="2" x:Name="FavoritesList" MaxHeight="140"
+                     MouseDoubleClick="FavoritesList_DoubleClick">
+                <ListBox.Resources>
+                    <ContextMenu x:Key="FavoriteItemMenu">
+                        <MenuItem Header="Aç + cc çalıştır" Click="FavoriteOpenCc_Click"/>
+                        <MenuItem Header="Sadece aç (cd)" Click="FavoriteOpenOnly_Click"/>
+                        <Separator/>
+                        <MenuItem Header="Etiketi değiştir..." Click="FavoriteRename_Click"/>
+                        <MenuItem Header="Favorilerden kaldır" Click="FavoriteRemove_Click"/>
+                    </ContextMenu>
+                </ListBox.Resources>
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="ContextMenu" Value="{StaticResource FavoriteItemMenu}"/>
+                        <Setter Property="Padding" Value="4"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <TextBlock Text="{Binding DisplayLabel}" FontWeight="SemiBold" Foreground="#D7BA7D" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding Path}" Foreground="#9CDCFE" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <TextBlock Grid.Row="3" Text="Açık CMD'ler" Margin="8,6,8,2" Foreground="#888" FontSize="11"/>
+
+            <ListBox Grid.Row="4" x:Name="OpenList"
+                     SelectionChanged="OpenList_SelectionChanged"
+                     MouseDoubleClick="OpenList_DoubleClick">
+                <ListBox.Resources>
+                    <ContextMenu x:Key="OpenItemMenu">
+                        <MenuItem Header="Öne getir" Click="Focus_Click"/>
+                        <MenuItem Header="Aynı dizinde yeni CMD" Click="CloneCmd_Click"/>
+                        <MenuItem Header="cc gönder" Click="SendCc_Click"/>
+                        <MenuItem Header="UTF-8 yap (chcp 65001)" Click="MakeUtf8_Click"/>
+                        <MenuItem Header="🔍 Tanılama: ham metni panoya kopyala" Click="DebugCopyRaw_Click"/>
+                        <MenuItem Header="⭐ Favorilere ekle" Click="AddOpenToFavorites_Click"/>
+                        <Separator/>
+                        <MenuItem Header="Kapat" Click="Kill_Click"/>
+                    </ContextMenu>
+                </ListBox.Resources>
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="ContextMenu" Value="{StaticResource OpenItemMenu}"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="2">
+                            <Rectangle x:Name="Bd" StrokeDashArray="3,2" StrokeThickness="1.5"
+                                       RadiusX="3" RadiusY="3" Stroke="#E74856"/>
+                            <StackPanel Margin="6,4">
+                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding CurrentDirectory}" Foreground="#9CDCFE" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock x:Name="ResumeLine" Text="{Binding ResumeInfo}" Foreground="#CE9178" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </Grid>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsIdle}" Value="True">
+                                <Setter TargetName="Bd" Property="Stroke" Value="#4EC9B0"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding ResumeInfo}" Value="">
+                                <Setter TargetName="ResumeLine" Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsLimitWaiting}" Value="True">
+                                <Setter TargetName="Bd" Property="Stroke" Value="#CE9178"/>
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="4,6,4,2">
+                <TextBlock Text="Geçmiş (çift tıkla → cd + cc)" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="4,0"/>
+                <Button Content="Temizle" Click="ClearHistory_Click" Padding="6,2" FontSize="11"/>
+            </StackPanel>
+
+            <ListBox Grid.Row="6" x:Name="HistoryList"
+                     MouseDoubleClick="HistoryList_DoubleClick">
+                <ListBox.Resources>
+                    <ContextMenu x:Key="HistoryItemMenu">
+                        <MenuItem Header="Aç + cc çalıştır" Click="HistoryOpenCc_Click"/>
+                        <MenuItem Header="Sadece aç (cd)" Click="HistoryOpenOnly_Click"/>
+                        <MenuItem Header="⭐ Favorilere ekle" Click="AddHistoryToFavorites_Click"/>
+                        <Separator/>
+                        <MenuItem Header="Geçmişten kaldır" Click="HistoryRemove_Click"/>
+                    </ContextMenu>
+                </ListBox.Resources>
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="ContextMenu" Value="{StaticResource HistoryItemMenu}"/>
+                        <Setter Property="Padding" Value="4"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <TextBlock Text="{Binding Path}" Foreground="#9CDCFE" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding ClosedAgo}" Foreground="#777" FontSize="10"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+
+        <!-- RIGHT COLUMN -->
+        <Grid Grid.Column="1" Background="#1E1E1E">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="4">
+                <Button Content="Öne Getir" Click="Focus_Click"/>
+                <Button Content="Aynı Dizinde Yeni CMD" Click="CloneCmd_Click"/>
+                <Button Content="cc Gönder" Click="SendCc_Click"/>
+                <Button Content="Kapat" Click="Kill_Click" Background="#5A2B2B"/>
+            </StackPanel>
+
+            <Border Grid.Row="1" Background="#0C0C0C" BorderBrush="#3F3F46" BorderThickness="1" Margin="4">
+                <RichTextBox x:Name="PreviewBox" IsReadOnly="True" IsDocumentEnabled="False"
+                             Background="#0C0C0C" Foreground="#CCCCCC"
+                             FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                             BorderThickness="0" Padding="8">
+                    <RichTextBox.Resources>
+                        <Style TargetType="Paragraph">
+                            <Setter Property="Margin" Value="0"/>
+                        </Style>
+                    </RichTextBox.Resources>
+                </RichTextBox>
+            </Border>
+
+            <Grid Grid.Row="2" Margin="4,2,4,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="❯" Foreground="#4EC9B0" FontFamily="Cascadia Mono, Consolas"
+                           FontSize="14" VerticalAlignment="Center" Margin="6,0,4,0"/>
+                <TextBox Grid.Column="1" x:Name="InputBox"
+                         Background="#0C0C0C" Foreground="#DCDCDC" CaretBrush="#DCDCDC"
+                         BorderBrush="#3F3F46" BorderThickness="1" Padding="6"
+                         FontFamily="Cascadia Mono, Consolas" FontSize="13"
+                         KeyDown="InputBox_KeyDown"
+                         ToolTip="Enter: sessiz gönder · ↑/↓: önceki komutlar"/>
+                <Button Grid.Column="2" Content="Gönder" Click="SendInput_Click" Margin="4,0,0,0"
+                        ToolTip="Sessiz gönder (fokus kaymaz)"/>
+                <Button Grid.Column="3" Content="📋 Paste" Click="PasteSend_Click" Margin="2,0,0,0"
+                        ToolTip="Pano üzerinden gönder — Türkçe/uzun metin için güvenli (cmd pencereye geçer)"/>
+            </Grid>
+
+            <Grid Grid.Row="3" Margin="6,2">
+                <TextBlock x:Name="StatusBar" Foreground="#888" HorizontalAlignment="Left"/>
+                <TextBlock x:Name="PreviewStatus" Foreground="#888" HorizontalAlignment="Right"/>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
