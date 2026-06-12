@@ -41,8 +41,8 @@ Only cmds whose current directory starts with a drive in `AllowedDrives` (`E:`, 
 
 ### Sending input — two deliberate paths
 
-- **Silent** (`Native.SendText`): writes KEY_EVENT records directly to the target's `CONIN$` via `WriteConsoleInput`, appending `\r\r`. No focus change, but unreliable for some Unicode (e.g. Turkish) input.
-- **Paste** (`SendViaPaste`): saves the clipboard, copies the text, focuses the cmd window, simulates Ctrl+V + Enter with `keybd_event`, then restores the clipboard and refocuses CmdManager. The reliable path for Turkish/long text; steals focus briefly.
+- **Silent** (`Native.SendText`): writes KEY_EVENT records directly to the target's `CONIN$` via `WriteConsoleInputW` (default two trailing Enters, callers can pass `enters: 1`). No focus change. Turkish/Unicode works **only because** `KEY_EVENT_RECORD`/`INPUT_RECORD`/`CHAR_INFO` carry `CharSet = CharSet.Unicode` — without it the marshaler silently degrades `char` to one ANSI byte (ı→'1', ş→'_' in the preview; ş→'þ' on send). Don't remove those attributes.
+- **Paste** (`SendViaPaste`): saves the clipboard, copies the text, focuses the cmd window, simulates Ctrl+V + Enter with `keybd_event`, then restores the clipboard and refocuses CmdManager. Kept as fallback for very long text; steals focus briefly.
 
 ### Preview rendering
 

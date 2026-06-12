@@ -70,7 +70,10 @@ public static class Native
     static extern bool ReadConsoleOutputCharacter(IntPtr h, [Out] char[] buffer, uint length, COORD coord, out uint read);
 
     // ---- Input ----
-    [StructLayout(LayoutKind.Sequential)]
+    // CharSet.Unicode on both structs: with the ANSI default, UnicodeChar marshals as ONE byte
+    // through the system codepage, so sending 'ş' typed 'þ' into the console (the original reason
+    // the clipboard-paste path existed).
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     struct KEY_EVENT_RECORD
     {
         public int bKeyDown;
@@ -80,14 +83,14 @@ public static class Native
         public char UnicodeChar;
         public uint dwControlKeyState;
     }
-    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    [StructLayout(LayoutKind.Sequential, Pack = 4, CharSet = CharSet.Unicode)]
     struct INPUT_RECORD
     {
         public ushort EventType;
         public KEY_EVENT_RECORD KeyEvent;
     }
     const ushort KEY_EVENT = 0x0001;
-    [DllImport("kernel32.dll", SetLastError = true)]
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint = "WriteConsoleInputW")]
     static extern bool WriteConsoleInput(IntPtr h, [MarshalAs(UnmanagedType.LPArray), In] INPUT_RECORD[] buffer, uint length, out uint written);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     static extern short VkKeyScanW(char ch);
@@ -109,10 +112,12 @@ public static class Native
     public static bool RegisterGlobalHotKey(IntPtr hWnd, int id, uint mods, uint vk) => RegisterHotKey(hWnd, id, mods, vk);
     public static bool UnregisterGlobalHotKey(IntPtr hWnd, int id) => UnregisterHotKey(hWnd, id);
 
-    [DllImport("kernel32.dll", SetLastError = true, EntryPoint = "ReadConsoleOutputW")]
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint = "ReadConsoleOutputW")]
     static extern bool ReadConsoleOutput(IntPtr h, [Out] CHAR_INFO[] buffer, COORD dwBufferSize, COORD dwBufferCoord, ref SMALL_RECT lpReadRegion);
 
-    [StructLayout(LayoutKind.Explicit, Size = 4)]
+    // CharSet.Unicode is load-bearing: without it the marshaler treats `char` as ANSI, reads only
+    // the LOW BYTE of the WCHAR and runs it through CP1254 — ı became '1', ş became '_', ● became 'Ï'.
+    [StructLayout(LayoutKind.Explicit, Size = 4, CharSet = CharSet.Unicode)]
     struct CHAR_INFO
     {
         [FieldOffset(0)] public char UnicodeChar;
