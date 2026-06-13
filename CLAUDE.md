@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CmdManager is a WPF (.NET 8, **x64-only**) utility that monitors and remote-controls open `cmd.exe` windows on this machine. It lists cmd windows working on the E: or F: drives, shows a live colored preview of the selected console, indicates busy/idle state, sends commands to consoles without stealing focus, and keeps history/favorites of working directories. It is built around an external `cc` command assumed to be on PATH (the user's Claude Code launcher) — several actions open a cmd and run `cc` in it. All UI text is Turkish.
+CmdManager is a WPF (.NET 8, **x64-only**) utility that monitors and remote-controls open `cmd.exe` windows on this machine. It lists cmd windows working on the E: or F: drives, shows a live colored preview of the selected console, indicates busy/idle state, sends commands to consoles without stealing focus, and keeps history/favorites of working directories. It is built around an external `cc` command assumed to be on PATH (the user's Claude Code launcher) — several actions open a cmd and run `cc` in it. The UI is localized (English default, Turkish toggle via the 🌐 button): XAML strings resolve through `DynamicResource` keys rebuilt by `ApplyLanguage()` from the `UiStrings` table, and code-behind strings use `Loc.T(en, tr)`. The chosen language persists in `settings.json` (`Language`).
 
 ## Build & Run
 

@@ -43,31 +43,31 @@
 
             <StackPanel Grid.Row="0">
                 <StackPanel Orientation="Horizontal" Margin="4">
-                    <Button Content="↻ Yenile" Click="Refresh_Click"/>
-                    <Button Content="+ Yeni CMD" Click="NewCmd_Click"/>
-                    <Button Content="Hepsini Kapat" Click="KillAll_Click" Background="#5A2B2B"/>
+                    <Button Content="{DynamicResource Refresh}" Click="Refresh_Click"/>
+                    <Button Content="{DynamicResource NewCmd}" Click="NewCmd_Click"/>
+                    <Button Content="{DynamicResource CloseAll}" Click="KillAll_Click" Background="#5A2B2B"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="8,0,4,4">
-                    <CheckBox x:Name="AutoResumeCheck" Content="⏰ Limit dolunca oto-devam"
+                    <CheckBox x:Name="AutoResumeCheck" Content="{DynamicResource AutoResume}"
                               Foreground="#DCDCDC" VerticalAlignment="Center"
                               Checked="AutoResume_Toggled" Unchecked="AutoResume_Toggled"
-                              ToolTip="Claude Code 'limit reached' deyince sıfırlanma saatini ekrandan okur ve vakti gelince devam komutunu otomatik gönderir"/>
+                              ToolTip="{DynamicResource AutoResumeTip}"/>
                     <Button Content="✏" Click="EditResumeMsg_Click" Padding="6,2" FontSize="11" Margin="8,0,0,0"
-                            ToolTip="Limit sıfırlanınca gönderilecek komutu değiştir"/>
+                            ToolTip="{DynamicResource EditResumeTip}"/>
                 </StackPanel>
             </StackPanel>
 
-            <TextBlock Grid.Row="1" Text="⭐ Favoriler" Margin="8,4,8,2" Foreground="#D7BA7D" FontSize="11"/>
+            <TextBlock Grid.Row="1" Text="{DynamicResource Favorites}" Margin="8,4,8,2" Foreground="#D7BA7D" FontSize="11"/>
 
             <ListBox Grid.Row="2" x:Name="FavoritesList" MaxHeight="140"
                      MouseDoubleClick="FavoritesList_DoubleClick">
                 <ListBox.Resources>
                     <ContextMenu x:Key="FavoriteItemMenu">
-                        <MenuItem Header="Aç + cc çalıştır" Click="FavoriteOpenCc_Click"/>
-                        <MenuItem Header="Sadece aç (cd)" Click="FavoriteOpenOnly_Click"/>
+                        <MenuItem Header="{DynamicResource MenuOpenCc}" Click="FavoriteOpenCc_Click"/>
+                        <MenuItem Header="{DynamicResource MenuOpenOnly}" Click="FavoriteOpenOnly_Click"/>
                         <Separator/>
-                        <MenuItem Header="Etiketi değiştir..." Click="FavoriteRename_Click"/>
-                        <MenuItem Header="Favorilerden kaldır" Click="FavoriteRemove_Click"/>
+                        <MenuItem Header="{DynamicResource MenuRenameLabel}" Click="FavoriteRename_Click"/>
+                        <MenuItem Header="{DynamicResource MenuRemoveFav}" Click="FavoriteRemove_Click"/>
                     </ContextMenu>
                 </ListBox.Resources>
                 <ListBox.ItemContainerStyle>
@@ -86,21 +86,21 @@
                 </ListBox.ItemTemplate>
             </ListBox>
 
-            <TextBlock Grid.Row="3" Text="Açık CMD'ler" Margin="8,6,8,2" Foreground="#888" FontSize="11"/>
+            <TextBlock Grid.Row="3" Text="{DynamicResource OpenCmds}" Margin="8,6,8,2" Foreground="#888" FontSize="11"/>
 
             <ListBox Grid.Row="4" x:Name="OpenList"
                      SelectionChanged="OpenList_SelectionChanged"
                      MouseDoubleClick="OpenList_DoubleClick">
                 <ListBox.Resources>
                     <ContextMenu x:Key="OpenItemMenu">
-                        <MenuItem Header="Öne getir" Click="Focus_Click"/>
-                        <MenuItem Header="Aynı dizinde yeni CMD" Click="CloneCmd_Click"/>
-                        <MenuItem Header="cc gönder" Click="SendCc_Click"/>
-                        <MenuItem Header="UTF-8 yap (chcp 65001)" Click="MakeUtf8_Click"/>
-                        <MenuItem Header="🔍 Tanılama: ham metni panoya kopyala" Click="DebugCopyRaw_Click"/>
-                        <MenuItem Header="⭐ Favorilere ekle" Click="AddOpenToFavorites_Click"/>
+                        <MenuItem Header="{DynamicResource MenuFocus}" Click="Focus_Click"/>
+                        <MenuItem Header="{DynamicResource MenuClone}" Click="CloneCmd_Click"/>
+                        <MenuItem Header="{DynamicResource MenuSendCc}" Click="SendCc_Click"/>
+                        <MenuItem Header="{DynamicResource MenuUtf8}" Click="MakeUtf8_Click"/>
+                        <MenuItem Header="{DynamicResource MenuDebugRaw}" Click="DebugCopyRaw_Click"/>
+                        <MenuItem Header="{DynamicResource MenuAddFav}" Click="AddOpenToFavorites_Click"/>
                         <Separator/>
-                        <MenuItem Header="Kapat" Click="Kill_Click"/>
+                        <MenuItem Header="{DynamicResource MenuClose}" Click="Kill_Click"/>
                     </ContextMenu>
                 </ListBox.Resources>
                 <ListBox.ItemContainerStyle>
@@ -137,19 +137,19 @@
             </ListBox>
 
             <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="4,6,4,2">
-                <TextBlock Text="Geçmiş (çift tıkla → cd + cc)" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="4,0"/>
-                <Button Content="Temizle" Click="ClearHistory_Click" Padding="6,2" FontSize="11"/>
+                <TextBlock Text="{DynamicResource History}" Foreground="#888" FontSize="11" VerticalAlignment="Center" Margin="4,0"/>
+                <Button Content="{DynamicResource Clear}" Click="ClearHistory_Click" Padding="6,2" FontSize="11"/>
             </StackPanel>
 
             <ListBox Grid.Row="6" x:Name="HistoryList"
                      MouseDoubleClick="HistoryList_DoubleClick">
                 <ListBox.Resources>
                     <ContextMenu x:Key="HistoryItemMenu">
-                        <MenuItem Header="Aç + cc çalıştır" Click="HistoryOpenCc_Click"/>
-                        <MenuItem Header="Sadece aç (cd)" Click="HistoryOpenOnly_Click"/>
-                        <MenuItem Header="⭐ Favorilere ekle" Click="AddHistoryToFavorites_Click"/>
+                        <MenuItem Header="{DynamicResource MenuOpenCc}" Click="HistoryOpenCc_Click"/>
+                        <MenuItem Header="{DynamicResource MenuOpenOnly}" Click="HistoryOpenOnly_Click"/>
+                        <MenuItem Header="{DynamicResource MenuAddFav}" Click="AddHistoryToFavorites_Click"/>
                         <Separator/>
-                        <MenuItem Header="Geçmişten kaldır" Click="HistoryRemove_Click"/>
+                        <MenuItem Header="{DynamicResource MenuRemoveHist}" Click="HistoryRemove_Click"/>
                     </ContextMenu>
                 </ListBox.Resources>
                 <ListBox.ItemContainerStyle>
@@ -178,12 +178,16 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="4">
-                <Button Content="Öne Getir" Click="Focus_Click"/>
-                <Button Content="Aynı Dizinde Yeni CMD" Click="CloneCmd_Click"/>
-                <Button Content="cc Gönder" Click="SendCc_Click"/>
-                <Button Content="Kapat" Click="Kill_Click" Background="#5A2B2B"/>
-            </StackPanel>
+            <DockPanel Grid.Row="0" Margin="4">
+                <Button DockPanel.Dock="Right" x:Name="LangButton" Click="LangButton_Click"
+                        ToolTip="{DynamicResource LangTip}"/>
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="{DynamicResource BtnFocus}" Click="Focus_Click"/>
+                    <Button Content="{DynamicResource BtnClone}" Click="CloneCmd_Click"/>
+                    <Button Content="{DynamicResource BtnSendCc}" Click="SendCc_Click"/>
+                    <Button Content="{DynamicResource BtnClose}" Click="Kill_Click" Background="#5A2B2B"/>
+                </StackPanel>
+            </DockPanel>
 
             <Border Grid.Row="1" Background="#0C0C0C" BorderBrush="#3F3F46" BorderThickness="1" Margin="4">
                 <RichTextBox x:Name="PreviewBox" IsReadOnly="True" IsDocumentEnabled="False"
@@ -213,11 +217,11 @@
                          BorderBrush="#3F3F46" BorderThickness="1" Padding="6"
                          FontFamily="Cascadia Mono, Consolas" FontSize="13"
                          KeyDown="InputBox_KeyDown"
-                         ToolTip="Enter: sessiz gönder · ↑/↓: önceki komutlar"/>
-                <Button Grid.Column="2" Content="Gönder" Click="SendInput_Click" Margin="4,0,0,0"
-                        ToolTip="Sessiz gönder (fokus kaymaz)"/>
+                         ToolTip="{DynamicResource InputTip}"/>
+                <Button Grid.Column="2" Content="{DynamicResource BtnSend}" Click="SendInput_Click" Margin="4,0,0,0"
+                        ToolTip="{DynamicResource SendTip}"/>
                 <Button Grid.Column="3" Content="📋 Paste" Click="PasteSend_Click" Margin="2,0,0,0"
-                        ToolTip="Pano üzerinden gönder — Türkçe/uzun metin için güvenli (cmd pencereye geçer)"/>
+                        ToolTip="{DynamicResource PasteTip}"/>
             </Grid>
 
             <Grid Grid.Row="3" Margin="6,2">

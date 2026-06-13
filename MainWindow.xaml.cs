@@ -19,6 +19,15 @@ using System.Windows.Threading;
 
 namespace CmdManager;
 
+// Lightweight runtime localization. XAML strings resolve via DynamicResource keys that
+// MainWindow.ApplyLanguage() rebuilds for the active language; code-behind strings use
+// Loc.T(en, tr). Default language is English; Turkish is available from the 🌐 button.
+static class Loc
+{
+    public static string Lang = "en";   // "en" or "tr"
+    public static string T(string en, string tr) => Lang == "tr" ? tr : en;
+}
+
 public partial class MainWindow : Window
 {
     public class CmdItem : INotifyPropertyChanged
@@ -80,10 +89,10 @@ public partial class MainWindow : Window
 
         static string Humanize(TimeSpan ts)
         {
-            if (ts.TotalSeconds < 60) return "az önce";
-            if (ts.TotalMinutes < 60) return $"{(int)ts.TotalMinutes} dk önce";
-            if (ts.TotalHours < 24) return $"{(int)ts.TotalHours} sa önce";
-            return $"{(int)ts.TotalDays} gün önce";
+            if (ts.TotalSeconds < 60) return Loc.T("just now", "az önce");
+            if (ts.TotalMinutes < 60) return Loc.T($"{(int)ts.TotalMinutes} min ago", $"{(int)ts.TotalMinutes} dk önce");
+            if (ts.TotalHours < 24) return Loc.T($"{(int)ts.TotalHours} h ago", $"{(int)ts.TotalHours} sa önce");
+            return Loc.T($"{(int)ts.TotalDays} d ago", $"{(int)ts.TotalDays} gün önce");
         }
     }
 
@@ -174,7 +183,8 @@ public partial class MainWindow : Window
     class AppSettings
     {
         public bool AutoResumeEnabled { get; set; } = true;
-        public string ResumeMessage { get; set; } = "devam et";
+        public string ResumeMessage { get; set; } = "continue";
+        public string Language { get; set; } = "en";   // "en" (default) or "tr"
     }
 
     // Hard-stop notices, anchored to LINE START (after stripping TUI decoration) so prose that
@@ -208,6 +218,7 @@ public partial class MainWindow : Window
     readonly string _settingsPath;
     AppSettings _settings = new();
     bool _settingsLoaded;
+    ResourceDictionary? _langDict;
     int _limitTickCounter;
     // Hotkey
     const int HOTKEY_ID = 0xBEEF;
@@ -244,8 +255,10 @@ public partial class MainWindow : Window
         LoadHistory();
         LoadFavorites();
         LoadSettings();
+        Loc.Lang = _settings.Language == "tr" ? "tr" : "en";
         AutoResumeCheck.IsChecked = _settings.AutoResumeEnabled;
         _settingsLoaded = true;
+        ApplyLanguage();
 
         _timer.Tick += OnTimerTick;
         _busyTimer.Tick += OnBusyTick;
@@ -483,7 +496,7 @@ public partial class MainWindow : Window
         if (target == null)
         {
             if (st.ResumeAt == null)
-                item.ResumeInfo = "⏸ limit algılandı · sıfırlanma saati okunamadı";
+                item.ResumeInfo = Loc.T("⏸ limit detected · reset time unreadable", "⏸ limit algılandı · sıfırlanma saati okunamadı");
         }
         else if (st.ParsedKey != key)
         {
@@ -509,13 +522,13 @@ public partial class MainWindow : Window
         // Time's up — send the resume command.
         if (!_settings.AutoResumeEnabled)
         {
-            item.ResumeInfo = $"⏸ limit sıfırlandı ({ra:HH:mm}) · oto-devam kapalı";
+            item.ResumeInfo = Loc.T($"⏸ limit reset ({ra:HH:mm}) · auto-resume off", $"⏸ limit sıfırlandı ({ra:HH:mm}) · oto-devam kapalı");
             return;
         }
         if (st.Attempts >= MaxResumeAttempts)
         {
             st.ResumeAt = null; // ParsedKey stays set so the same notice can't re-arm
-            item.ResumeInfo = "⏸ oto-devam denemeleri tükendi · elle devam et";
+            item.ResumeInfo = Loc.T("⏸ auto-resume attempts exhausted · resume manually", "⏸ oto-devam denemeleri tükendi · elle devam et");
             return;
         }
         if (Native.IsForegroundWindow(item.WindowHandle))
@@ -526,7 +539,7 @@ public partial class MainWindow : Window
         if (!Native.HasLiveChild(item.Pid))
         {
             st.ResumeAt = null; // bare cmd left behind — never run the message as a shell command
-            item.ResumeInfo = "⏸ oturum kapanmış görünüyor · oto-devam iptal";
+            item.ResumeInfo = Loc.T("⏸ session appears closed · auto-resume canceled", "⏸ oturum kapanmış görünüyor · oto-devam iptal");
             return;
         }
 
@@ -539,7 +552,7 @@ public partial class MainWindow : Window
             st.ResumeAt = null;
             st.ParsedKey = null;
             MarkSent(item.Pid);
-            item.ResumeInfo = $"▶ devam gönderildi ({now:HH:mm})";
+            item.ResumeInfo = Loc.T($"▶ resume sent ({now:HH:mm})", $"▶ devam gönderildi ({now:HH:mm})");
             try { System.Media.SystemSounds.Exclamation.Play(); } catch { }
         }
         else
@@ -623,14 +636,14 @@ public partial class MainWindow : Window
     string FormatResumeInfo(DateTime ra, DateTime now)
     {
         var left = ra - now;
-        string lt = left.TotalSeconds <= 0 ? "şimdi"
-            : left.TotalHours >= 1 ? $"{(int)left.TotalHours} sa {left.Minutes} dk"
-            : left.TotalMinutes >= 1 ? $"{(int)left.TotalMinutes} dk"
-            : $"{(int)left.TotalSeconds} sn";
+        string lt = left.TotalSeconds <= 0 ? Loc.T("now", "şimdi")
+            : left.TotalHours >= 1 ? Loc.T($"{(int)left.TotalHours}h {left.Minutes}m", $"{(int)left.TotalHours} sa {left.Minutes} dk")
+            : left.TotalMinutes >= 1 ? Loc.T($"{(int)left.TotalMinutes}m", $"{(int)left.TotalMinutes} dk")
+            : Loc.T($"{(int)left.TotalSeconds}s", $"{(int)left.TotalSeconds} sn");
         string when = ra.Date != now.Date ? ra.ToString("dd.MM HH:mm") : ra.ToString("HH:mm");
         return _settings.AutoResumeEnabled
-            ? $"⏸ limit · {when} devam ({lt})"
-            : $"⏸ limit · {when} sıfırlanır · oto-devam kapalı";
+            ? Loc.T($"⏸ limit · resume {when} ({lt})", $"⏸ limit · {when} devam ({lt})")
+            : Loc.T($"⏸ limit · resets {when} · auto-resume off", $"⏸ limit · {when} sıfırlanır · oto-devam kapalı");
     }
 
     void LoadSettings()
@@ -653,6 +666,77 @@ public partial class MainWindow : Window
         catch { }
     }
 
+    // ---------------- Localization ----------------
+    // key -> (English, Turkish). Consumed by ApplyLanguage as DynamicResource values.
+    static readonly Dictionary<string, (string en, string tr)> UiStrings = new()
+    {
+        ["Refresh"]        = ("↻ Refresh", "↻ Yenile"),
+        ["NewCmd"]         = ("+ New CMD", "+ Yeni CMD"),
+        ["CloseAll"]       = ("Close All", "Hepsini Kapat"),
+        ["AutoResume"]     = ("⏰ Auto-resume when limit resets", "⏰ Limit dolunca oto-devam"),
+        ["AutoResumeTip"]  = ("When Claude Code says \"limit reached\", reads the reset time from the screen and automatically sends the resume command when it is time",
+                              "Claude Code 'limit reached' deyince sıfırlanma saatini ekrandan okur ve vakti gelince devam komutunu otomatik gönderir"),
+        ["EditResumeTip"]  = ("Change the command sent when the limit resets", "Limit sıfırlanınca gönderilecek komutu değiştir"),
+        ["Favorites"]      = ("⭐ Favorites", "⭐ Favoriler"),
+        ["OpenCmds"]       = ("Open CMDs", "Açık CMD'ler"),
+        ["History"]        = ("History (double-click → cd + cc)", "Geçmiş (çift tıkla → cd + cc)"),
+        ["Clear"]          = ("Clear", "Temizle"),
+        ["MenuOpenCc"]     = ("Open + run cc", "Aç + cc çalıştır"),
+        ["MenuOpenOnly"]   = ("Open only (cd)", "Sadece aç (cd)"),
+        ["MenuRenameLabel"]= ("Change label...", "Etiketi değiştir..."),
+        ["MenuRemoveFav"]  = ("Remove from favorites", "Favorilerden kaldır"),
+        ["MenuFocus"]      = ("Bring to front", "Öne getir"),
+        ["MenuClone"]      = ("New CMD in same folder", "Aynı dizinde yeni CMD"),
+        ["MenuSendCc"]     = ("Send cc", "cc gönder"),
+        ["MenuUtf8"]       = ("Set UTF-8 (chcp 65001)", "UTF-8 yap (chcp 65001)"),
+        ["MenuDebugRaw"]   = ("🔍 Diagnostics: copy raw text to clipboard", "🔍 Tanılama: ham metni panoya kopyala"),
+        ["MenuAddFav"]     = ("⭐ Add to favorites", "⭐ Favorilere ekle"),
+        ["MenuClose"]      = ("Close", "Kapat"),
+        ["MenuRemoveHist"] = ("Remove from history", "Geçmişten kaldır"),
+        ["BtnFocus"]       = ("Bring to Front", "Öne Getir"),
+        ["BtnClone"]       = ("New CMD in Same Folder", "Aynı Dizinde Yeni CMD"),
+        ["BtnSendCc"]      = ("Send cc", "cc Gönder"),
+        ["BtnClose"]       = ("Close", "Kapat"),
+        ["InputTip"]       = ("Enter: send silently · ↑/↓: previous commands", "Enter: sessiz gönder · ↑/↓: önceki komutlar"),
+        ["BtnSend"]        = ("Send", "Gönder"),
+        ["SendTip"]        = ("Send silently (no focus change)", "Sessiz gönder (fokus kaymaz)"),
+        ["PasteTip"]       = ("Send via clipboard — safe for long/Unicode text (focus switches to the cmd window)",
+                              "Pano üzerinden gönder — Türkçe/uzun metin için güvenli (cmd pencereye geçer)"),
+        ["LangTip"]        = ("Switch language (English / Türkçe)", "Dili değiştir (English / Türkçe)"),
+    };
+
+    void ApplyLanguage()
+    {
+        var rd = new ResourceDictionary();
+        foreach (var kv in UiStrings)
+            rd[kv.Key] = Loc.Lang == "tr" ? kv.Value.tr : kv.Value.en;
+        if (_langDict != null) Resources.MergedDictionaries.Remove(_langDict);
+        Resources.MergedDictionaries.Add(rd);
+        _langDict = rd;
+        if (LangButton != null) LangButton.Content = Loc.Lang == "tr" ? "🌐 Türkçe" : "🌐 English";
+        UpdateStatusBar();
+        foreach (var h in _historyItems) h.RefreshAgo();
+    }
+
+    void LangButton_Click(object sender, RoutedEventArgs e)
+    {
+        Loc.Lang = Loc.Lang == "tr" ? "en" : "tr";
+        _settings.Language = Loc.Lang;
+        SaveSettings();
+        ApplyLanguage();
+    }
+
+    void UpdateStatusBar()
+    {
+        int limitWaiting = _openItems.Count(o => o.IsLimitWaiting);
+        StatusBar.Text = string.Format(
+            Loc.T("{0} open · {1} history · {2} favorites", "{0} açık · {1} geçmiş · {2} favori"),
+            _openItems.Count, _historyItems.Count, _favoriteItems.Count)
+            + (limitWaiting > 0
+                ? Loc.T($" · ⏰ {limitWaiting} on limit", $" · ⏰ {limitWaiting} limitte")
+                : "");
+    }
+
     void AutoResume_Toggled(object sender, RoutedEventArgs e)
     {
         if (!_settingsLoaded) return;
@@ -663,8 +747,9 @@ public partial class MainWindow : Window
     void EditResumeMsg_Click(object sender, RoutedEventArgs e)
     {
         var text = InputDialog.Show(this,
-            "Limit sıfırlanınca gönderilecek komut (Claude Code oturumuna yazılır):",
-            "Oto-devam Komutu", _settings.ResumeMessage);
+            Loc.T("Command to send when the limit resets (typed into the Claude Code session):",
+                  "Limit sıfırlanınca gönderilecek komut (Claude Code oturumuna yazılır):"),
+            Loc.T("Auto-resume Command", "Oto-devam Komutu"), _settings.ResumeMessage);
         if (text == null) return;
         if (string.IsNullOrWhiteSpace(text)) return;
         _settings.ResumeMessage = text.Trim();
@@ -720,9 +805,7 @@ public partial class MainWindow : Window
             var match = _openItems.FirstOrDefault(x => x.Pid == prevSelectedPid);
             if (match != null) OpenList.SelectedItem = match;
         }
-        int limitWaiting = _openItems.Count(o => o.IsLimitWaiting);
-        StatusBar.Text = $"{_openItems.Count} açık · {_historyItems.Count} geçmiş · {_favoriteItems.Count} favori"
-            + (limitWaiting > 0 ? $" · ⏰ {limitWaiting} limitte" : "");
+        UpdateStatusBar();
     }
 
     void UpdatePreview()
@@ -737,7 +820,7 @@ public partial class MainWindow : Window
         var lines = Native.ReadScreenCells(item.Pid);
         if (lines == null)
         {
-            PreviewStatus.Text = "ekran okunamadı";
+            PreviewStatus.Text = Loc.T("screen unreadable", "ekran okunamadı");
             return;
         }
         int hash = ComputeHash(lines);
@@ -887,7 +970,7 @@ public partial class MainWindow : Window
             MessageBox.Show("Bu dizin zaten favorilerde.");
             return;
         }
-        var label = InputDialog.Show(this, "Etiket (boş bırakırsan yol gösterilir):", "Favorilere Ekle");
+        var label = InputDialog.Show(this, Loc.T("Label (leave empty to show the path):", "Etiket (boş bırakırsan yol gösterilir):"), Loc.T("Add to Favorites", "Favorilere Ekle"));
         if (label == null) return;
         _favoriteItems.Add(new FavoriteItem
         {
@@ -915,7 +998,7 @@ public partial class MainWindow : Window
     void FavoriteRename_Click(object sender, RoutedEventArgs e)
     {
         if (FavoritesList.SelectedItem is not FavoriteItem f) return;
-        var newLabel = InputDialog.Show(this, "Yeni etiket (boş → yol gösterilir):", "Etiket Değiştir", f.Label ?? "");
+        var newLabel = InputDialog.Show(this, Loc.T("New label (empty → show the path):", "Yeni etiket (boş → yol gösterilir):"), Loc.T("Change Label", "Etiket Değiştir"), f.Label ?? "");
         if (newLabel == null) return;
         f.Label = string.IsNullOrWhiteSpace(newLabel) ? null : newLabel.Trim();
         f.NotifyChanged();
@@ -951,8 +1034,8 @@ public partial class MainWindow : Window
     {
         if (_openItems.Count == 0) return;
         var result = MessageBox.Show(
-            $"{_openItems.Count} cmd penceresini kapatmak istiyor musun?",
-            "Hepsini Kapat", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            Loc.T($"Close {_openItems.Count} cmd window(s)?", $"{_openItems.Count} cmd penceresini kapatmak istiyor musun?"),
+            Loc.T("Close All", "Hepsini Kapat"), MessageBoxButton.YesNo, MessageBoxImage.Warning);
         if (result != MessageBoxResult.Yes) return;
         foreach (var item in _openItems.ToList()) TryKill(item.Pid);
         Refresh();
@@ -979,7 +1062,7 @@ public partial class MainWindow : Window
         if (OpenList.SelectedItem is CmdItem item)
         {
             if (!Native.SendText(item.Pid, "cc"))
-                MessageBox.Show("Komut gönderilemedi.");
+                MessageBox.Show(Loc.T("Could not send the command.", "Komut gönderilemedi."));
             else
                 MarkSent(item.Pid);
         }
@@ -990,7 +1073,7 @@ public partial class MainWindow : Window
         if (OpenList.SelectedItem is CmdItem item)
         {
             if (!Native.SendText(item.Pid, "chcp 65001"))
-                MessageBox.Show("Komut gönderilemedi.");
+                MessageBox.Show(Loc.T("Could not send the command.", "Komut gönderilemedi."));
         }
     }
 
@@ -998,11 +1081,11 @@ public partial class MainWindow : Window
     {
         if (OpenList.SelectedItem is not CmdItem item) return;
         var raw = Native.ReadScreenBuffer(item.Pid);
-        if (raw == null) { MessageBox.Show("Okunamadı."); return; }
+        if (raw == null) { MessageBox.Show(Loc.T("Could not read.", "Okunamadı.")); return; }
         try
         {
             System.Windows.Clipboard.SetText(raw);
-            MessageBox.Show($"Panoya kopyalandı ({raw.Length} karakter). Notepad'e yapıştır, '?' gerçekten var mı gör.");
+            MessageBox.Show(Loc.T($"Copied to clipboard ({raw.Length} chars). Paste into Notepad to see whether '?' is really there.", $"Panoya kopyalandı ({raw.Length} karakter). Notepad'e yapıştır, '?' gerçekten var mı gör."));
         }
         catch (Exception ex) { MessageBox.Show(ex.Message); }
     }
@@ -1045,7 +1128,7 @@ public partial class MainWindow : Window
     {
         if (OpenList.SelectedItem is not CmdItem item)
         {
-            MessageBox.Show("Önce soldan bir cmd seç.");
+            MessageBox.Show(Loc.T("Select a cmd on the left first.", "Önce soldan bir cmd seç."));
             return;
         }
         var text = InputBox.Text;
@@ -1059,7 +1142,7 @@ public partial class MainWindow : Window
         InputBox.Text = "";
 
         if (!Native.SendText(item.Pid, text))
-            MessageBox.Show("Komut gönderilemedi.");
+            MessageBox.Show(Loc.T("Could not send the command.", "Komut gönderilemedi."));
         else
             MarkSent(item.Pid);
         InputBox.Focus();
@@ -1109,7 +1192,7 @@ public partial class MainWindow : Window
     {
         if (OpenList.SelectedItem is not CmdItem item)
         {
-            MessageBox.Show("Önce soldan bir cmd seç.");
+            MessageBox.Show(Loc.T("Select a cmd on the left first.", "Önce soldan bir cmd seç."));
             return;
         }
         var text = InputBox.Text;
@@ -1167,7 +1250,7 @@ public partial class MainWindow : Window
     void ClearHistory_Click(object sender, RoutedEventArgs e)
     {
         if (_historyItems.Count == 0) return;
-        var r = MessageBox.Show("Tüm geçmişi silmek istiyor musun?", "Geçmişi Temizle",
+        var r = MessageBox.Show(Loc.T("Clear all history?", "Tüm geçmişi silmek istiyor musun?"), Loc.T("Clear History", "Geçmişi Temizle"),
             MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (r != MessageBoxResult.Yes) return;
         _historyItems.Clear();
@@ -1232,8 +1315,8 @@ public static class InputDialog
             CaretBrush = Brushes.White,
             BorderBrush = Brushes.Gray
         };
-        var okBtn = new System.Windows.Controls.Button { Content = "Tamam", Padding = new Thickness(14, 4, 14, 4), Margin = new Thickness(4), IsDefault = true };
-        var cancelBtn = new System.Windows.Controls.Button { Content = "İptal", Padding = new Thickness(14, 4, 14, 4), Margin = new Thickness(4), IsCancel = true };
+        var okBtn = new System.Windows.Controls.Button { Content = Loc.T("OK", "Tamam"), Padding = new Thickness(14, 4, 14, 4), Margin = new Thickness(4), IsDefault = true };
+        var cancelBtn = new System.Windows.Controls.Button { Content = Loc.T("Cancel", "İptal"), Padding = new Thickness(14, 4, 14, 4), Margin = new Thickness(4), IsCancel = true };
         var btnPanel = new System.Windows.Controls.StackPanel
         {
             Orientation = System.Windows.Controls.Orientation.Horizontal,

@@ -17,8 +17,7 @@ A Windows WPF utility for monitoring and remote-controlling `cmd.exe` windows th
 - **Auto-resume on usage limits** — when Claude Code stops with "5-hour limit reached · resets 3pm" (or weekly / extra-usage variants), the app parses the reset time off the screen and automatically sends a configurable resume command (default `devam et`) once the limit lifts. It's heavily guarded against false positives: on-screen code/quotes don't trigger it, it won't type into a bare shell after Claude has exited, and it postpones if you're actively using that window. Toggle it and edit the message from the toolbar.
 - **History & favorites** — directories of closed cmds are recorded automatically (double-click to reopen and relaunch `cc`); pin favorite directories with custom labels.
 - **Global hotkey** — `Ctrl+Alt+M` toggles the window from anywhere.
-
-All UI text is in Turkish.
+- **English / Turkish UI** — ships in English by default; switch to Turkish anytime with the 🌐 button (your choice is saved to settings).
 
 ## Build
 
