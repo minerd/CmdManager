@@ -6,6 +6,8 @@ A Windows WPF utility for monitoring and remote-controlling `cmd.exe` windows th
 
 > **Not affiliated with Anthropic.** This is an independent, third-party tool. "Claude" and "Claude Code" are trademarks of Anthropic; this project is not endorsed by or connected to Anthropic in any way.
 
+![CmdManager screenshot](docs/screenshot.png)
+
 ## Features
 
 - **Live console preview** — reads the target console's screen buffer (colors included) and renders it in the app; no focus stealing.
